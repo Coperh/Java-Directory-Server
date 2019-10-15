@@ -4,6 +4,12 @@ package coperh.Lab2;
 import java.net.*;
 import java.io.*;
 
+/**
+ * A class to represent a server that advertises on the directory server
+ *
+ * @author Conor Holden(117379801)
+ *
+ */
 public class ProcessServer extends DirectoryUser {
 
     private ServerSocket serverSocket;
@@ -14,7 +20,10 @@ public class ProcessServer extends DirectoryUser {
     private Advert advert;
     private int serverPort = 6666;
 
-
+    /**
+     * Publishes the service on the directory Server
+     * @param port port used by the directory server
+     */
     public void publish(int port){
         try {
             InetAddress directoryAddress = discover(port);
@@ -41,6 +50,9 @@ public class ProcessServer extends DirectoryUser {
         }
     }
 
+    /**
+     * Begins the process server
+     */
     public void start(){
         try{
             System.out.println("Starting Server");
@@ -53,8 +65,16 @@ public class ProcessServer extends DirectoryUser {
 
                 String req = (String)objectIn.readObject();
                 System.out.println("Request: " +req);
-                System.out.println("Response sent");
-                objectOut.writeObject("Response");
+                // if it is a renewal notification from the directory
+                if (req.equals("renewal\n")){
+                    System.out.println("Renewing Lease");
+                    objectOut.writeObject("renew\n");
+
+                }
+                else {
+                    System.out.println("Response sent");
+                    objectOut.writeObject("Response");
+                }
 
                 objectOut.close();
                 objectIn.close();

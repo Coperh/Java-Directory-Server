@@ -3,14 +3,18 @@ package coperh.Lab2;
 import javafx.util.Pair;
 import java.net.*;
 import java.io.*;
-
+/**
+ * A class to represent a client that requests a service from the directory
+ *
+ * @author Conor Holden(117379801)
+ */
 public class Client extends DirectoryUser {
 
     /**
      * Fetches the server that runs the service
      * @param service the service that is being requested
      * @param port the port of the discover server
-     * @return
+     * @return the ip and port of the server that provides the service
      */
     public Pair<InetAddress, Integer> fetch(String service, int port){
         try{
@@ -41,6 +45,11 @@ public class Client extends DirectoryUser {
         catch(ClassNotFoundException e){return null;}
     }
 
+    /**
+     * Sends a request to a server to execute the request and return results
+     * @param address Address of the server
+     * @param port Port used for the service
+     */
     public void maths(InetAddress address, int port){
         try {
             Socket mathSocket = new Socket(address, port);
@@ -63,6 +72,11 @@ public class Client extends DirectoryUser {
 
         Client client = new Client();
         Pair<InetAddress, Integer> server = client.fetch("Math",3455);
-        client.maths(server.getKey(), server.getValue());
+        if (server !=  null) {
+            client.maths(server.getKey(), server.getValue());
+        }
+        else{
+            System.out.println("Service Does not Exist");
+        }
     }
 }

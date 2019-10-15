@@ -6,6 +6,8 @@ import java.io.*;
 
 /**
  * A class to represent a generic Directory service user
+ *
+ * @author Conor Holden(117379801)
  */
 public abstract class  DirectoryUser {
 

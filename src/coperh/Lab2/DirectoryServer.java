@@ -7,9 +7,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.net.*;
 import java.io.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A class to represent a directory service system
+ *
+ * @author Conor Holden(117379801)
  */
 public class DirectoryServer {
 
@@ -37,15 +40,15 @@ public class DirectoryServer {
             System.out.println("Network Error");
         }
     }
-
     public static void main(String[] args){
         DirectoryServer server = new DirectoryServer(3455);
         server.start();
     }
 
-
     /**
      * Server responsible for directory registers and queries
+     *
+     * @author Conor Holden(117379801)
      */
     private static class DirectoryService extends Thread{
             private int port;
@@ -69,6 +72,8 @@ public class DirectoryServer {
 
     /**
      * Handles directory service clients
+     *
+     * @author Conor Holden(117379801)
      */
     private static class ClientHandler extends Thread{
 
@@ -93,7 +98,8 @@ public class DirectoryServer {
                 DIRECTORY.put(service, new ArrayList<Advert>());
             }
             DIRECTORY.get(service).add(advert);
-            System.out.println("Registered: "+advert);
+            new Lease(advert).start();
+            System.out.println("Registered: "+advert+" Lease 60 seconds");
             objectOut.writeObject("Register Confirmed");
         }
 
@@ -106,6 +112,10 @@ public class DirectoryServer {
             String request = (String)objectIn.readObject();
 
             if (DIRECTORY.get(request) == null) {
+                System.out.println("Service does not exist: " + request);
+                objectOut.writeObject(null);
+            }
+            else if (DIRECTORY.get(request).size() < 1){
                 System.out.println("Service does not exist: " + request);
                 objectOut.writeObject(null);
             }
@@ -156,6 +166,8 @@ public class DirectoryServer {
 
     /**
      * Defines a server responsible for discovery requests
+     *
+     * @author Conor Holden(117379801)
      */
     private class DiscoveryService extends Thread{
 
@@ -195,5 +207,72 @@ public class DirectoryServer {
                 socket.close();
             }
         }
+    }
+
+    /**
+     * Class responsible for handling server leases
+     *
+     * @author Conor Holden(117379801)
+     */
+    private static class Lease extends Thread{
+
+        Advert advert;
+
+        private Lease(Advert advert){
+            this.advert = advert;
+        }
+
+        public void run(){
+            try{
+                // wait one minute
+                TimeUnit.MINUTES.sleep(1);
+
+                // create connection
+                InetSocketAddress addr = new InetSocketAddress(advert.host, advert.port);
+                Socket timeoutSocket = new Socket();
+                timeoutSocket.connect(addr,1000);
+                ObjectInputStream objectIn = new ObjectInputStream(timeoutSocket.getInputStream());
+                ObjectOutputStream objectOut = new ObjectOutputStream(timeoutSocket.getOutputStream());
+
+                objectOut.writeObject("renewal\n");
+
+                String response = (String)objectIn.readObject();
+                if (response.equals("renew\n")){
+                    System.out.println("Renewing: "+advert.host+" "+advert.service);
+                    objectIn.close();
+                    objectOut.close();
+                    timeoutSocket.close();
+                    // renew Lease
+                    new Lease(advert).start();
+
+                }
+                else{
+                    System.out.println("Removing: "+advert.host+" "+advert.service);
+                    ArrayList<Advert> adverts = DIRECTORY.get(advert.service);
+                    for (int i =0; i <adverts.size();i++){
+                        if(adverts.get(i) == advert){
+                            adverts.remove(i);
+                        }
+                    }
+                }
+                objectIn.close();
+                objectOut.close();
+                timeoutSocket.close();
+            }
+            catch(IOException e){
+                System.out.println("Removing: "+advert.host+" "+advert.service);
+                ArrayList<Advert> adverts = DIRECTORY.get(advert.service);
+                for (int i =0; i <adverts.size();i++){
+                    if(adverts.get(i) == advert){
+                        adverts.remove(i);
+                    }
+                }
+            }
+            catch(ClassNotFoundException e){}
+            catch(InterruptedException e){}
+
+
+        }
+
     }
 }
